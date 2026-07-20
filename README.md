@@ -1,6 +1,8 @@
-# Portal Desa Sidoharjo
+* [ ]  dd
 
-Village government website for Desa Sidoharjo. See [CLAUDE.md](./CLAUDE.md) for
+# Portal Kelurahan Sidoharjo
+
+Government website for Kelurahan Sidoharjo. See [CLAUDE.md](./CLAUDE.md) for
 the full architecture, content model, and build roadmap.
 
 ## Development
