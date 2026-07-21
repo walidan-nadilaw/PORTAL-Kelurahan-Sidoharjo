@@ -1,273 +1,290 @@
-```
-
-```
-
 # Portal Kelurahan Sidoharjo
 
-## Git
+Lightweight, near-zero-cost government site for Kelurahan Sidoharjo. Solo
+beginner dev. Build style: **"I build, you explain"** — implement directly and
+explain the reasoning, not a guided-coding curriculum.
 
-**ABSOLUTELY NO COMMITTING.** Never run `git commit` (or `git push`) unless the
-user explicitly asks in that exact message. Leave changes staged/unstaged for
-the user to review and commit themselves.
+## Rules for the assistant
 
-Lightweight, near-zero-cost government website for Kelurahan Sidoharjo.
-Solo beginner developer. Build style: "I build, you explain" — implement each
-phase directly and explain the reasoning, not a guided-coding curriculum.
+- **NO COMMITTING.** Never run `git commit`/`git push` unless the user asks in
+  that exact message. Leave changes for the user to review.
+- **NO BUILDING.** Never run `npm run build` unless the user asks. It takes
+  ~60s and the user runs it themselves. `npm run lint` and `npm test` are cheap
+  (~15s) and fine to run when verifying a change.
 
 ## Stack
 
-**Frontend:** Next.js (App Router) + Tailwind + shadcn/ui. Deploy: Vercel Hobby.
-**CMS:** Sanity.io + Studio, embedded at `/admin`. Indonesian field labels for
-non-tech kelurahan staff.
-**Charts:** Recharts, fed by Sanity `demographicStat` data.
+Next.js (App Router) + Tailwind + shadcn/ui → Vercel Hobby. Sanity.io + Studio
+embedded at `/admin` (Indonesian field labels; editors are non-technical).
+Recharts for `demographicStat`. Montserrat (headings) / Poppins (body).
 
-No database. All content is Sanity-authored; the site is fully read-only
-(static/ISR). No complaints form, no Supabase, no server-side writes.
+No database, no forms, no server-side writes — fully read-only static/ISR. No
+public accounts, no login on the public site. Editors are several kelurahan
+staff with individual Sanity accounts (see Handover).
 
-Single user: the admin, who edits content via Sanity Studio at `/admin`.
-No public accounts, no login on the public site, no per-editor roles.
+### Local dev
 
-## Content model (Sanity)
+- **`npm run dev`** is the normal loop. **`npm run build` takes ~60s** — ~40s of
+  it is bundling Studio (one 4 MB chunk; 841 packages, 51 under `@sanity/`).
+  That cost is fixed, not proportional to page count, so it won't grow much in
+  later phases. Build at phase boundaries, not on every change.
+- **`vitest.config.ts` must use the `vite-tsconfig-paths` plugin** for the `@/`
+  alias. `resolve: { tsconfigPaths: true }` is not a real Vite option — Vite
+  ignores it silently and tests then fail intermittently with
+  `Cannot read properties of undefined (reading 'config')`, most often right
+  after a build. Don't "simplify" it back.
 
-`sanity/schemaTypes/`, one file per type, aggregated in `index.ts`. All field
-titles in Bahasa Indonesia (editors are non-technical staff).
+### Sanity project (settings live outside this repo)
+
+Credentials in `.env.local` (gitignored; see `.env.local.example`). Project is
+live and connected; `http://localhost:3000` is already CORS-allowlisted.
+
+**CORS origins are stored on the Sanity project, not in version control** — a
+fresh clone or new project hits a "Connect this Studio" wall at `/admin` until
+allowlisted. `--credentials` is required (Studio sends the login session, not
+just public reads):
+
+```bash
+npx sanity cors add http://localhost:3000 --credentials   # npx sanity cors list
+```
+
+Add the deployed origin at Phase 5, once the final domain is settled, rather
+than accumulating stale origins now.
+
+## Content model — `sanity/schemaTypes/*`, aggregated in `index.ts`
 
 - **`siteSettings`** (singleton): `logo`, `tiktokUrl`, `instagramUrl`,
-  `villageName`, `heroVideoUrl` (YouTube embed), `contactEmail`,
-  `contactWhatsapp`, `contactAddress`, `googleMapsUrl`, `orgChartImage`,
-  `tourismMapImage` (Wonogiri tourism map shown on `/peta`).
-- **`post`** (Berita Kelurahan & Prestasi — merged, since the two had nearly
-  identical fields; still two separate pages, `/berita` and `/prestasi`,
-  each filtering by `category`): `title`, `slug`, `category`
-  (`berita`|`prestasi`), `publishedAt`
-  (berita entries only), `date` (prestasi entries only — used to group
-  achievements by year and shown on the achievement card), `coverImage`
-  (listing thumbnail), `images` (array, rendered in a "Dokumentasi" section
-  on the detail page), `excerpt`, `body` (portable text).
-- **`place`** (Peta & Tempat Umum): `name`, `category`
-  (`pemerintahan`|`masjid`|`sekolah`|`toko`|`lainnya` — drives icon AND
-  filter), `googleMapsUrl`. No photo/description/address.
-- **`staffMember`**: `name`, `position`, `photo`, `order` (manual sort).
-- **`umkm`**: `businessName`, `description`, `photo`, `contactUrl` (link to
-  preferred contact channel — WhatsApp, Line, etc.), `category`.
-- **`demographicStat`** (flat rows — trivial for staff to add one at a time):
-  `statType`, `year`, `label`, `value`, `unit`. See Demographics below.
-- **`blockContent`**: portable text object used by `post.body`.
+  `villageName`, `heroVideoUrl`, `contactEmail`, `contactWhatsapp`,
+  `googleMapsUrl`, `orgChartImage`, `kelurahanMapImage` (shown on `/peta`).
+  No `contactAddress` — dropped on purpose.
+- **`post`** — Berita + Prestasi merged (near-identical fields); `/berita` and
+  `/prestasi` are separate pages filtering on `category`: `title`, `slug`,
+  `category` (`berita`|`prestasi`), `publishedAt` (both — also groups
+  Prestasi by year), `coverImage`, `images` (→ "Dokumentasi" section on
+  detail page), `excerpt`, `body`.
+  - `slug` and `category` are auto-set and **hidden** — staff never see them.
+  - `publishedAt` is **prefilled with today but left visible and editable**, so
+    older announcements can be backdated. Deliberate: fully hiding it would make
+    backdating impossible.
+- **`place`**: `name`, `category`
+  (`pemerintahan`|`masjid`|`sekolah`|`toko`|`lainnya` — drives icon AND filter),
+  `googleMapsUrl`. No photo/description/address.
+- **`staffMember`**: `name`, `position`, `photo`, `order`.
+- **`umkm`**: `businessName`, `description`, `photo`, `contactUrl`. No
+  `category` (dropped in Phase 1).
+- **`demographicStat`** (flat rows, added one at a time): `statType`, `year`,
+  `label`, `value`, `unit`.
+- **`blockContent`**: portable text for `post.body`.
 
-## Image storage
+## Images
 
-No separate storage service. Two homes:
+Two homes: **Sanity CDN** for anything staff edit (via
+`src/lib/sanity/image.ts`); **`public/images/`** for fixed Figma design assets.
 
-- **Sanity CDN** (`cdn.sanity.io`) — every `image` field above. Staff upload via
-  Studio; render through `src/lib/sanity/image.ts`. Use for anything staff edit.
-- **`public/images/`** — fixed design assets from Figma (icons, illustrations)
-  that never change and aren't staff-editable. Rendered via `<Image>`.
+Asset storage is the only metered resource that grows. Two separate concerns:
 
-**Asset storage is the one metered resource that grows over time** (mostly from
-news images). Two separate concerns — both must be handled:
+- **Display:** serve via Sanity CDN transform URLs (`?w=…&auto=format` →
+  auto-WebP), NOT Vercel's optimizer (Hobby quota). Automatic once wired.
+- **Storage (5 GB):** Sanity keeps the **raw original**; `auto=format` does not
+  shrink it. Staff will drag in raw phone photos, so **auto-resize-on-upload**
+  (client-side downscale to ~1600px) is wired into Studio rather than relying on
+  upload discipline. It is the *only* upload path — the default drag-and-drop
+  asset source is disabled, so no unshrunk original can slip through.
+- Rule: **web-sized originals in, WebP variants out.** Set `cdn.sanity.io` in
+  `next.config.js`.
 
-- **Display (bandwidth/speed):** serve via **Sanity CDN transform URLs**
-  (`?w=…&auto=format` → auto-WebP, resized), NOT Vercel's image optimizer —
-  avoids Vercel Hobby's optimization quota. `src/lib/sanity/image.ts` builds
-  these. This is automatic once wired; the admin does nothing.
-- **Storage (the 5 GB ceiling):** Sanity stores the **raw original**, and
-  `auto=format` does NOT shrink it. So the stored file must go in already small.
-  The admin is non-technical and will upload raw phone photos, so **do not rely
-  on upload discipline** — add an **auto-resize-on-upload** step in Sanity Studio
-  (client-side downscale to ~1600px wide before the asset is sent). Admin still
-  just drags a phone photo; the shrink is invisible. This turns storage from
-  "~1–8 years" into "effectively never" without any admin habit.
-- Rule of thumb: **web-sized originals in, WebP variants out.**
-- Set `cdn.sanity.io` in `next.config.js` image domains.
+### `public/images/` — exported from Figma
 
-### Assets exported from Figma → `public/images/`
+Figma MCP is quota-exhausted (Starter: 6 calls/month), so exports are manual.
+**All assets are exported and correctly named — the list is complete.**
 
-The Figma MCP connector is on a **Starter plan: 6 tool calls/month, all seat
-types** (the "200/day" tier is Professional, not Starter). That quota is spent,
-so asset URLs can't be pulled programmatically — export by hand from Figma
-(select node → Export → PNG 2x, or SVG where it's a clean vector).
+Naming: `ic-<name>.png`, kebab-case. Place icons are `ic-place-<category>.png`
+matching the `place.category` enum exactly, so `/peta` resolves them
+mechanically (`` `/images/ic-place-${category}.png` ``) with no mapping table.
 
-**Naming convention:** `ic-<name>.png`, lowercase kebab-case, no spaces.
-Place-category icons are named `ic-place-<category>.png` where `<category>` is
-the exact `place.category` enum value, so the `/peta` lookup is mechanical
-(`` `/images/ic-place-${place.category}.png` ``) with no mapping table.
+- Header (all pages): `ic-instagram`, `ic-tiktok`
+- Homepage Layanan: `ic-kantor-kelurahan`, `ic-peta`, `ic-umkm`, `ic-prestasi`
+- `/peta` cards: `ic-place-{pemerintahan,masjid,sekolah,toko,lainnya}`
+- `/prestasi`: `ic-trophy` (×2)
 
-**All assets are exported and correctly named — this list is complete.** Nothing
-further needs pulling from Figma, which matters because the MCP quota is spent.
+**Two trophies, easy to confuse:** `ic-prestasi` is gold/glossy, homepage
+Layanan only. `ic-trophy` is a white glyph on a dark-green circle, used on
+`/prestasi` as both the timeline year marker and the stand-in thumbnail for
+cards with no `coverImage`. Figma uses a third (indigo on lavender) for that
+stand-in — **deliberately dropped, `ic-trophy` reused instead. Don't "fix" it.**
 
-| File                        | Where used             |
-| --------------------------- | ---------------------- |
-| `ic-instagram.png`        | header, all pages      |
-| `ic-tiktok.png`           | header, all pages      |
-| `ic-kantor-kelurahan.png` | homepage Layanan       |
-| `ic-peta.png`             | homepage Layanan       |
-| `ic-umkm.png`             | homepage Layanan       |
-| `ic-prestasi.png`         | homepage Layanan       |
-| `ic-place-pemerintahan.png` | `/peta` cards        |
-| `ic-place-masjid.png`     | `/peta` cards        |
-| `ic-place-sekolah.png`    | `/peta` cards        |
-| `ic-place-toko.png`       | `/peta` cards        |
-| `ic-place-lainnya.png`    | `/peta` cards        |
-| `ic-trophy.png`           | `/prestasi` ×2       |
+**Settled:** the 4 Layanan icons are bespoke flat-vector assets, not emoji —
+they merely read like 🏛 🗺 🏪 🏆 at a glance. Use the files.
 
-Two trophies exist, easy to confuse:
+**From Sanity, never exported:** `siteSettings.logo` / `.orgChartImage` /
+`.kelurahanMapImage`, `post.coverImage` / `.images`, `staffMember.photo`,
+`umkm.photo`. Video thumbnail is YouTube's own (iframe via `heroVideoUrl`).
 
-- `ic-prestasi` — gold/glossy, homepage Layanan row only.
-- `ic-trophy` — white glyph on a **dark-green circle**, used twice on
-  `/prestasi`: as the year marker (2026, 2023, …) on the timeline rail, and as
-  the thumbnail stand-in on achievement cards with no `coverImage`.
-
-The Figma design uses a third trophy (indigo on a lavender tile) for that
-no-cover card. **Deliberately dropped** — `ic-trophy` is reused there instead,
-so the design and the build differ on this point on purpose. Don't "fix" it.
-
-**Do NOT export these** — they come from Sanity, uploaded by staff:
-`siteSettings.logo` (Wonogiri emblem), `siteSettings.orgChartImage` (Struktur
-Organisasi), `siteSettings.tourismMapImage` (Wonogiri tourism map on `/peta` —
-currently a Figma placeholder, `image 3`, 630×450 in the desktop frame, but
-staff-editable so it's a Sanity field, not a `public/images/` export),
-`post.coverImage` / `post.images`, `staffMember.photo`, `umkm.photo`. The
-video thumbnail is YouTube's own (iframe embed via `heroVideoUrl`), not an
-asset.
-
-**Also do NOT export** generic UI icons — use `lucide-react` (ships with the
-shadcn/ui setup): arrows (`lihat semua →`, `lihat lebih lanjut →`), calendar
-(post dates), map pin (`lihat peta` buttons), back arrow (`← Kembali`), search.
-
-**Settled:** the 4 Layanan icons are **custom flat-vector assets, not system
-emoji.** They read as emoji at a glance (🏛 🗺 🏪 🏆) but are bespoke, and have
-been exported. Use the files — do not substitute emoji or an icon font.
+**Generic UI icons → `lucide-react`**, not exports: arrows, calendar, map pin,
+back arrow, search.
 
 ### Page background — CSS, not an image
 
-`background (desktop|mobile).png` in `design-reference/` is a plain vertical
-gradient, cream → pale mint. **Do not ship it as a PNG** (227 KB for something
-CSS renders free). Sampled stops, 1440×960 frame:
+`background (desktop|mobile).png` in `design-reference/` is just a vertical
+gradient; shipping the 227 KB PNG would be waste. Use
+`bg-gradient-to-b from-[#F8F6F0] from-25% to-[#E9F6EB]`.
 
-- `#F8F6F0` from 0%, held to ~25%
-- easing to `#E9F6EB` at 100%
-
-Tailwind: `bg-gradient-to-b from-[#F8F6F0] from-25% to-[#E9F6EB]`. The PNGs stay
-in `design-reference/` as a colour reference only.
-
-## Routes (App Router)
+## Routes
 
 `/` `/berita` `/berita/[slug]` `/peta` `/pemerintah-kelurahan` `/umkm`
-`/prestasi` `/demografi` `/admin` (Studio) `/api/revalidate` (webhook target).
-All content pages are ISR. Readers are served Vercel's edge cache — Sanity is
-queried only at build/revalidation, so load scales with content changes, not
-traffic.
+`/prestasi` `/demografi` `/admin` (Studio) `/api/revalidate`.
 
-**On-demand revalidation (not optional for a news site):** a Sanity webhook →
-`src/app/api/revalidate/route.ts` makes new posts appear instantly instead of
-waiting up to an hour. Build it in Phase 2.
+All content pages ISR — readers hit Vercel's edge cache, Sanity is queried only
+at build/revalidation, so load scales with content changes, not traffic.
 
-**Paginate `/berita`:** GROQ-slice the listing (e.g. `[0...12]`) with load-more
-or page numbers — never render all posts at once. Design the query with a limit
-from the start.
+- **On-demand revalidation is not optional** for a news site: Sanity webhook →
+  `src/app/api/revalidate/route.ts` so posts appear instantly (Phase 2).
+- **Paginate `/berita`** — GROQ-slice (`[0...12]`) with load-more/page numbers.
+  Design the query with a limit from the start; never render all posts.
 
 ## Conventions
 
 - `src/lib/sanity/{client,queries,image}.ts` — central query/client/image layer.
 - `src/components/{layout,home,berita,peta,pemerintah,umkm,prestasi,demografi/charts}/*`
-- Staff-editable images (e.g. org chart) go through Sanity, not `/public`.
-- Assets from Figma: **manual export** to `public/images/` — the
-  `plugin:figma:figma` connector is quota-exhausted (see Image storage above).
-- Design reference screenshots live in `design-reference/` (gitignored).
+- `src/app/(site)/` is the public route group; `/admin` has its own layout so
+  Studio doesn't inherit site fonts/chrome.
+- `design-reference/` holds design screenshots (gitignored).
 
-## Build roadmap (phased)
+## Roadmap & progress
 
-- **Phase 0 — Env & deploy skeleton.** Next.js + Tailwind + shadcn/ui scaffold,
-  placeholder homepage, Vercel linked and auto-deploying on push. Validates the
-  pipeline before any CMS complexity.
-- **Phase 1 — Sanity schema + Studio.** Set up the test framework (see
-  Verification below) so it's real from here on. All types above; Studio
-  embedded at `/admin`. Add the **auto-resize-on-upload** step (client-side
-  downscale to ~1600px before the asset uploads) so raw phone photos don't
-  fill storage. Milestone: staff can create/edit content in Studio; a big
-  photo lands as a small stored original.
-- **Phase 2 — Static pages wired to Sanity.** Build `src/lib/sanity/*`, then
-  pages easiest→hardest: Header/Footer (siteSettings) → Pemerintah Kelurahan → UMKM →
-  Prestasi → Berita (portable text + dynamic routes; paginate the listing) →
-  homepage (composes all). Also add the `/api/revalidate` webhook route so
-  published posts appear instantly, and serve all images via Sanity CDN
-  transform URLs (not Vercel's optimizer).
-- **Phase 3 — Map / Places page.** Two-column on desktop (single column stacked
-  on mobile): `tourismMapImage` on the left, place list on the right. The map is
-  a **static image, not an interactive map** — no map library needed. Right
-  column is a search input ("Cari Tempat Umum"), a row of filter pills, then a
-  2-up grid of place cards (category icon + name + "lihat peta" button linking
-  to `googleMapsUrl`). Icon resolved via `` `/images/ic-place-${category}.png` ``.
-  Client-side filter + search — first interactive UI. Two details from the frame:
-  the pill row leads with an extra **"Semua"** (all) state that is not a
-  category, and the `pemerintahan` enum is displayed as the shorter label
-  **"Pemerintah"** — so category → label needs a small display map even though
-  category → icon does not.
-- **Phase 4 — Demographics charts.** Server component groups `demographicStat`
-  by `statType`; one Recharts client component per chart (see below).
-- **Phase 5 — Deploy polish + domain.** Vercel env audit, Sanity CDN image
-  domain, SEO metadata/sitemap/robots, then `.go.id` via PANDI (kelurahan is a
-  government instansi, not eligible for `.desa.id` — needs a request/
-  verification letter from the kelurahan or Kecamatan/Dinas Kominfo instead of
-  Surat Kuasa + SK Kades; confirm current requirements/cost with PANDI before
-  this phase), DNS cutover.
+A phase is done only when `npm run build`, `npm run lint`, and `npm test` all
+pass clean. Fix failures before moving on; don't let them accumulate. (The user
+runs the builds — see Rules above.)
 
-## Verification
+- [x] **Phase 0 — Skeleton.** Next.js + Tailwind + shadcn/ui scaffold,
+      placeholder homepage, Vercel linked and auto-deploying on push.
+- [x] **Phase 1 — Sanity schema + Studio.** All types above; Studio at `/admin`;
+      auto-resize-on-upload wired; Vitest + RTL set up; Sanity project connected
+      and CORS allowlisted; one of each type created in Studio and verified.
+      `slug` is `hidden: true` and derived by a **document-level** input
+      (`AutoSlugDocumentInput`) — a field-level input can't work, since `hidden`
+      unmounts the field and stops the sync.
+- [ ] **Phase 2 — Static pages wired to Sanity.** Build `src/lib/sanity/*`, then
+      easiest→hardest: Header/Footer → Pemerintah Kelurahan → UMKM → Prestasi →
+      Berita (portable text, dynamic routes, paginated) → homepage. Add
+      `/api/revalidate`; serve images via Sanity CDN transforms.
+      Homepage is only (per `design-reference/beranda-desktop.png`):
+      header/footer → "Layanan" row of 4 static nav icons (Kantor Kelurahan,
+      Peta & Tempat Publik, UMKM Lokal, Prestasi Kelurahan — icon + label, no
+      preview) → "Berita Kelurahan" with the 3 latest posts + "lihat semua"
+      (the only fetched content) → "Video Profil" embed (`heroVideoUrl`).
+- [ ] **Phase 3 — Peta.** Two columns desktop, stacked mobile:
+      `kelurahanMapImage` left, list right. **Static image, not an interactive
+      map** — no map library. Right column: search ("Cari Tempat Umum"), filter
+      pills, 2-up grid of cards (icon + name + "lihat peta" → `googleMapsUrl`).
+      Client-side filter + search. Two frame details: pills lead with a
+      **"Semua"** state that is not a category, and `pemerintahan` displays as
+      **"Pemerintah"** — so category→label needs a small display map,
+      category→icon does not.
+- [ ] **Phase 4 — Demographics.** Server component groups `demographicStat` by
+      `statType`; one Recharts client component per chart.
+- [ ] **Phase 5 — Deploy polish + domain + handover.** Vercel env audit,
+      `cdn.sanity.io` image domain, SEO metadata/sitemap/robots, `.go.id` via
+      PANDI, DNS cutover, then the Handover checklist below.
 
-**After every phase, before considering it done:** run `npm run build`,
-`npm run lint`, and `npm test` — all three must pass clean. Fix failures before
-moving to the next phase; don't let them accumulate.
+## Handover (the project's actual end state)
 
-`npm test` doesn't exist yet — no test framework is installed. Set one up at
-the **start of Phase 1** (Vitest + React Testing Library is the standard,
-lightweight pairing for Next.js) so the three-command check is meaningful from
-Phase 1 onward. Phase 0 was verified with build + lint only, since nothing
-testable existed yet (a placeholder page has no logic to test).
+**The developer intends to hand this to kelurahan staff and stop maintaining
+it.** That drives decisions that otherwise look like overkill — treat this as a
+hard requirement, not a nice-to-have.
 
-## Progress checklist
+**Nothing may stay on the developer's personal accounts.** Any service on a
+personal email makes the dev a permanent single point of failure — staff
+couldn't add a colleague, resolve a billing notice, or recover access without
+them. Sanity, Vercel, GitHub, and the domain must all end up under a
+**kelurahan-controlled email**.
 
-- [X] **Phase 0** — scaffold, placeholder homepage, Vercel linked + auto-deploy
-  verified, build/lint clean.
-- [ ] **Phase 1** — test framework installed; all schema types in
-  `sanity/schemaTypes/`; Studio at `/admin`; auto-resize-on-upload wired;
-  staff can create/edit every content type; build/lint/test clean.
-- [ ] **Phase 2** — `src/lib/sanity/*` built; Header/Footer, Pemerintah
-  Kelurahan, UMKM, Prestasi, Berita (listing + detail, paginated), homepage
-  all wired to Sanity; `/api/revalidate` route added; images served via
-  Sanity CDN transform URLs; build/lint/test clean.
-- [ ] **Phase 3** — Peta page (icon + name + maps button), category filter,
-  search bar; build/lint/test clean.
-- [ ] **Phase 4** — demographics charts (one per section F metric) wired to
-  `demographicStat`; build/lint/test clean.
-- [ ] **Phase 5** — Vercel env audit; Sanity CDN image domain configured; SEO
-  metadata/sitemap/robots; `.go.id` requirements confirmed and domain
-  registered; DNS cutover; build/lint/test clean.
+**At least one staff member must be a Sanity Administrator.** Editors can write
+content but cannot invite people, so if the dev is the only Administrator, staff
+can't onboard a colleague after handover. Promote the most computer-comfortable
+person (often the sekretaris); everyone else stays **Editor** (create/edit/
+publish, no project settings, no dataset deletion).
 
-## Demographics page (investor/collaborator lens)
+**Individual accounts, Google sign-in preferred** — not a shared login. Password
+resets are the most common support request, and Google sign-in routes them to
+Google instead of to the dev. Shared accounts also break 2FA (code goes to one
+phone), make revision history useless for "who changed this?", and turn staff
+turnover into a password-redistribution exercise. Invites are per **email
+address** and must match the Google account exactly — ask each person which
+Gmail they actually use. Non-Gmail users fall back to email + password.
 
-Priority order, each fed by `demographicStat` rows:
+### Transfer plan (Phase 5, after the site is live and stable)
+
+End state: kelurahan owns everything, **dev keeps a member/collaborator seat on
+each service** as a best-effort safety net. Ownership and billing move; access
+stays. Access alone is not responsibility — but access *only* by the dev is,
+which is why the staff Administrator above is a hard prerequisite. Without it
+every problem escalates to the dev by default and handover is cosmetic.
+
+0. **Institutional email — blocking dependency.** The kelurahan needs one email
+   they control (not a staff personal Gmail, which just relocates the single
+   point of failure). Everything below depends on it. Start here: it's
+   bureaucratic, not technical, and will be the slowest part.
+1. **Sanity — transfer, do not recreate.** Transfer keeps the project ID, so
+   `.env.local`, Vercel env vars, and the CORS allowlist all keep working.
+   Recreating means a new project ID, dataset export/import, and re-adding CORS.
+   Verify the current flow in sanity.io/manage, then demote the dev account to
+   Administrator rather than removing it.
+2. **GitHub — transfer the repo.** History and commits move with it. Re-add the
+   dev as collaborator. Expect the Vercel↔GitHub link to break; step 3 fixes it.
+3. **Vercel — transfer to a kelurahan-owned Hobby account.** Do **not** create a
+   Vercel *Team* — paid tier, breaks the Rp 0 goal, no benefit at this scale.
+   Then re-authorize the GitHub connection, confirm push still triggers a
+   deploy, and re-check env vars survived.
+4. **Domain + DNS** — only after 1–3 land and a test deploy is green. `.go.id`
+   is kelurahan-owned from registration, so there's nothing to transfer; just
+   point it at the now-kelurahan-owned Vercel project.
+5. **Verify end-to-end, in this order:** publish a test post in Studio → webhook
+   fires → it appears on the live domain → image upload still auto-resizes. Then
+   delete the test post. If any step fails, the previous owner still holds
+   access, so nothing is unrecoverable. **Not optional** — the real risk is a
+   half-finished transfer (GitHub moved, Vercel never reconnected) that looks
+   fine until the next content edit silently stops deploying.
+6. **Write the limit down.** The staff guide must state that dev access is
+   best-effort, not a maintenance commitment — for future staff who never met
+   the dev. That's the difference between a safety net and unpaid on-call.
+
+### Staff guide (Phase 5 deliverable)
+
+A short **Bahasa Indonesia** guide with screenshots: how to log in, add a
+berita, add a photo, edit `siteSettings`, and who to contact if something
+breaks. This converts "the developer knows how it works" into "the kelurahan
+knows how it works."
+
+### The honest limit
+
+Content editing becomes fully self-service; **code maintenance does not.**
+Within a few years a dependency or platform change will need a developer for a
+few hours, and nobody at the kelurahan can do that. Two things soften it: the
+site is static/ISR, so a broken build or Sanity outage leaves the last published
+version serving from Vercel's cache rather than taking the site down; and good
+documentation means *any* developer can pick it up, not specifically this one.
+
+## Demographics (investor/collaborator lens)
+
+Priority order, each fed by `demographicStat`:
 
 1. **Distribusi Usia / Rasio Usia Produktif** (bar/pyramid, 0–14/15–64/65+) —
-   labor pool size and dependency ratio.
-2. **Tingkat Pendidikan** (horizontal bar: Tidak Sekolah→SD→SMP→SMA/SMK→D/S1+) —
-   workforce skill/trainability.
+   labor pool size + dependency ratio.
+2. **Tingkat Pendidikan** (horizontal bar, Tidak Sekolah→SD→SMP→SMA/SMK→D/S1+)
+   — workforce skill/trainability.
 3. **Mata Pencaharian** (pie/bar: Petani, Pedagang/UMKM, Buruh, Jasa, PNS,
    Lainnya) — clearest signal of local economic activity.
 4. **Akses Infrastruktur** (grouped bar/stat tiles: % listrik, air bersih,
    sanitasi, internet) — hard gating factor for investment.
-5. **Tren Pertumbuhan Populasi** (line, 5–10yr) — trajectory signal.
-6. *(Optional, if data exists & appropriate)* **Klasifikasi Kesejahteraan**.
 
-Deprioritized (resident nice-to-know, not investor-relevant): religion, marital
-status, gender ratio alone. Flat schema supports adding these with no changes.
+Dropped in Phase 1 (not in `statType`'s options): Tren Pertumbuhan Populasi,
+Klasifikasi Kesejahteraan. Deprioritized as resident-only: religion, marital
+status, gender ratio alone. The flat schema absorbs additions with no changes.
 
 ## Cost 2026
 
-All else free tier. Domain cost is **unconfirmed** — see note below.
-
-| Item             | Cost          | Notes                                                                                                                                                                                                                           |
-| ---------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Domain`.go.id` | **TBD** | Kelurahan is a government instansi →`.go.id`, not `.desa.id`. Historically often fee-free for verified instansi, but needs confirming with PANDI/Dinas Kominfo before Phase 5 — do not assume the old `.desa.id` price. |
-| Vercel           | Rp 0          | Free tier                                                                                                                                                                                                                       |
-| Sanity           | Rp 0          | Free tier                                                                                                                                                                                                                       |
-| **TOTAL**  | **TBD** | Re-price once`.go.id` requirements are confirmed                                                                                                                                                                              |
+Vercel + Sanity free tier (Rp 0). Domain **TBD** — kelurahan is a government
+instansi, so `.go.id`, **not** `.desa.id`. Often fee-free for verified instansi,
+but confirm requirements/cost with PANDI or Dinas Kominfo before Phase 5; do not
+assume the old `.desa.id` price.
