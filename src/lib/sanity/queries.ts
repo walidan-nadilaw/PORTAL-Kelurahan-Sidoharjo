@@ -16,11 +16,22 @@ export const siteSettingsQuery = groq`
     heroVideoUrl,
     officeImage${imageFields},
     orgChartImage${imageFields},
+    kelurahanMapImage${imageFields},
     contactEmail,
     contactWhatsapp,
     googleMapsUrl,
     instagramUrl,
     tiktokUrl
+  }
+`;
+
+/** Public places for /peta — no images, just name + category + maps link. */
+export const placesQuery = groq`
+  *[_type == "place"] | order(name asc){
+    _id,
+    name,
+    category,
+    googleMapsUrl
   }
 `;
 

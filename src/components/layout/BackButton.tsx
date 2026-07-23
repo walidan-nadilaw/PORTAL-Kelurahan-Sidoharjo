@@ -6,7 +6,8 @@ import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * The white "← Kembali" pill at the top-left of every inner page.
+ * The "← Kembali" back control at the top-left of every inner page. Plain text
+ * on mobile, a white pill from `sm:` up — per the mockups.
  *
  * Goes back through browser history when there is any, so a reader who opened
  * an article from the homepage returns to the homepage rather than being sent
@@ -35,7 +36,7 @@ export function BackButton({
         }
       }}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full bg-white/30 px-5 py-2.5 font-heading text-xs sm:text-sm font-bold shadow-sm transition-shadow hover:shadow-md",
+        "inline-flex items-center gap-2 rounded-full font-heading text-xs sm:text-sm font-bold transition-shadow hover:text-brand sm:bg-white/30 sm:px-5 sm:py-2.5 sm:shadow-sm sm:hover:shadow-md",
         className,
       )}
     >

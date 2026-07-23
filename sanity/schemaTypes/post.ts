@@ -1,15 +1,15 @@
 import { defineField, defineType } from "sanity";
 import {
-  AutoSlugDocumentInput,
+  PostDocumentInput,
   PublishedAtField,
-} from "./components/autoSlug";
+} from "./components/postDocumentInput";
 import { withUploadHint } from "./uploadHint";
 
 export const post = defineType({
   name: "post",
   title: "Artikel",
   type: "document",
-  components: { input: AutoSlugDocumentInput },
+  components: { input: PostDocumentInput },
   fields: [
     defineField({
       name: "title",
@@ -41,6 +41,19 @@ export const post = defineType({
       components: { field: PublishedAtField },
     }),
     defineField({
+      name: "body",
+      title: "Isi",
+      type: "blockContent",
+    }),
+    defineField({
+      name: "excerpt",
+      title: "Deskripsi Singkat",
+      description:
+        "Terisi otomatis dari baris pertama Isi — boleh diubah bila ingin ringkasan sendiri. Ditampilkan di halaman daftar",
+      type: "text",
+      rows: 3,
+    }),
+    defineField({
       name: "coverImage",
       title: "Gambar Sampul",
       description: withUploadHint(
@@ -58,19 +71,7 @@ export const post = defineType({
       type: "array",
       of: [{ type: "image", options: { hotspot: true } }],
     }),
-    defineField({
-      name: "excerpt",
-      title: "Deskripsi Singkat",
-      description: "Ditampilkan di halaman daftar",
-      type: "text",
-      rows: 3,
-    }),
-    defineField({
-      name: "body",
-      title: "Isi",
-      type: "blockContent",
-    }),
-    // Auto-derived by AutoSlugDocumentInput; last in the list so that even if a
+    // Auto-derived by PostDocumentInput; last in the list so that even if a
     // future Studio version starts rendering hidden fields, it lands at the
     // bottom of the form instead of splitting the visible fields apart.
     defineField({

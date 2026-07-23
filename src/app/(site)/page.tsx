@@ -33,7 +33,7 @@ export default async function Home() {
             </h2>
             <Link
               href="/berita"
-              className="inline-flex shrink-0 items-center gap-2 text-xs sm:text-sm font-medium hover:text-brand sm:absolute sm:right-0"
+              className="inline-flex shrink-0 items-center gap-2 text-xs sm:text-sm font-semibold hover:text-brand sm:absolute sm:right-0 hover:underline hover:underline-offset-4 hover:drop-shadow-lg"
             >
               lihat semua
               <ArrowRight className="size-4" aria-hidden />

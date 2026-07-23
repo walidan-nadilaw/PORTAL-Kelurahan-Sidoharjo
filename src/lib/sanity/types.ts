@@ -24,11 +24,27 @@ export interface SiteSettings {
   heroVideoUrl: string | null;
   officeImage: SanityImage | null;
   orgChartImage: SanityImage | null;
+  kelurahanMapImage: SanityImage | null;
   contactEmail: string | null;
   contactWhatsapp: string | null;
   googleMapsUrl: string | null;
   instagramUrl: string | null;
   tiktokUrl: string | null;
+}
+
+/** The `place.category` enum — drives both the filter pills and the icon. */
+export type PlaceCategory =
+  | "pemerintahan"
+  | "masjid"
+  | "sekolah"
+  | "toko"
+  | "lainnya";
+
+export interface Place {
+  _id: string;
+  name: string;
+  category: PlaceCategory;
+  googleMapsUrl: string;
 }
 
 export interface StaffMember {

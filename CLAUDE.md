@@ -195,8 +195,10 @@ runs the builds — see Rules above.)
   auto-resize-on-upload wired; Vitest + RTL set up; Sanity project connected
   and CORS allowlisted; one of each type created in Studio and verified.
   `slug` is `hidden: true` and derived by a **document-level** input
-  (`AutoSlugDocumentInput`) — a field-level input can't work, since `hidden`
-  unmounts the field and stops the sync.
+  (`PostDocumentInput`) — a field-level input can't work, since `hidden`
+  unmounts the field and stops the sync. That same input also seeds `excerpt`
+  from the first line of `body` — a *default*, not a lock: it tracks the body
+  until the editor types their own summary, then backs off.
 - [X] **Phase 2 — Static pages wired to Sanity.** Build `src/lib/sanity/*`, then
   easiest→hardest: Header/Footer → Pemerintah Kelurahan → UMKM → Prestasi →
   Berita (portable text, dynamic routes, paginated) → homepage. Add
@@ -210,10 +212,10 @@ runs the builds — see Rules above.)
   `kelurahanMapImage` left, list right. **Static image, not an interactive
   map** — no map library. Right column: search ("Cari Tempat Umum"), filter
   pills, 2-up grid of cards (icon + name + "lihat peta" → `googleMapsUrl`).
-  Client-side filter + search. Two frame details: pills lead with a
-  **"Semua"** state that is not a category, and `pemerintahan` displays as
-  **"Pemerintah"** — so category→label needs a small display map,
-  category→icon does not.
+  Client-side filter + search. Pills lead with a **"Semua"** state that is not
+  a category; every real category shows its full name capitalised
+  (`pemerintahan` → "Pemerintahan"), so no category→label map is needed —
+  category→icon resolves mechanically too.
 - [ ] **Phase 4 — Demographics.** Server component groups `demographicStat` by
   `statType`; one Recharts client component per chart.
 - [ ] **Phase 5 — Deploy polish + domain + handover.** Vercel env audit,
