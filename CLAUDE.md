@@ -1,3 +1,4 @@
+
 # Portal Kelurahan Sidoharjo
 
 Lightweight, near-zero-cost government site for Kelurahan Sidoharjo. Solo
@@ -11,6 +12,15 @@ explain the reasoning, not a guided-coding curriculum.
 - **NO BUILDING.** Never run `npm run build` unless the user asks. It takes
   ~60s and the user runs it themselves. `npm run lint` and `npm test` are cheap
   (~15s) and fine to run when verifying a change.
+- **READ BOTH MOCKUPS BEFORE BUILDING A PAGE.** Open
+  `design-reference/<page>-desktop.png` **and** `<page>-mobile.png` before
+  writing any of it — not just the desktop one, and not only when something
+  looks wrong afterwards. Mobile is a different layout, not the desktop one
+  narrowed: on `beranda` alone it changes the Layanan grid to 3 columns,
+  left-aligns headings that are centred on desktop, and turns the Berita row
+  into a horizontal swipe carousel. None of that is inferable from the desktop
+  frame. The same applies when *revising* a page — re-read both, since a
+  request phrased about one breakpoint usually affects the other.
 
 ## Stack
 
@@ -53,10 +63,11 @@ than accumulating stale origins now.
 
 ## Content model — `sanity/schemaTypes/*`, aggregated in `index.ts`
 
-- **`siteSettings`** (singleton): `logo`, `tiktokUrl`, `instagramUrl`,
+- **`siteSettings`** (singleton): `tiktokUrl`, `instagramUrl`,
   `villageName`, `heroVideoUrl`, `contactEmail`, `contactWhatsapp`,
-  `googleMapsUrl`, `orgChartImage`, `kelurahanMapImage` (shown on `/peta`).
-  No `contactAddress` — dropped on purpose.
+  `googleMapsUrl`, `orgChartImage`, `kelurahanMapImage` (shown on `/peta`),
+  `officeImage` (hero photo on `/pemerintah-kelurahan`). No `contactAddress` —
+  dropped on purpose.
 - **`post`** — Berita + Prestasi merged (near-identical fields); `/berita` and
   `/prestasi` are separate pages filtering on `category`: `title`, `slug`,
   `category` (`berita`|`prestasi`), `publishedAt` (both — also groups
@@ -70,8 +81,9 @@ than accumulating stale origins now.
   (`pemerintahan`|`masjid`|`sekolah`|`toko`|`lainnya` — drives icon AND filter),
   `googleMapsUrl`. No photo/description/address.
 - **`staffMember`**: `name`, `position`, `photo`, `order`.
-- **`umkm`**: `businessName`, `description`, `photo`, `contactUrl`. No
-  `category` (dropped in Phase 1).
+- **`umkm`**: `businessName`, `description`, `photo`, `contactUrl`,
+  `googleMapsUrl` (optional — the "lihat peta" button renders only when it's
+  filled). No `category` (dropped in Phase 1).
 - **`demographicStat`** (flat rows, added one at a time): `statType`, `year`,
   `label`, `value`, `unit`.
 - **`blockContent`**: portable text for `post.body`.
@@ -86,10 +98,14 @@ Asset storage is the only metered resource that grows. Two separate concerns:
 - **Display:** serve via Sanity CDN transform URLs (`?w=…&auto=format` →
   auto-WebP), NOT Vercel's optimizer (Hobby quota). Automatic once wired.
 - **Storage (5 GB):** Sanity keeps the **raw original**; `auto=format` does not
-  shrink it. Staff will drag in raw phone photos, so **auto-resize-on-upload**
-  (client-side downscale to ~1600px) is wired into Studio rather than relying on
-  upload discipline. It is the *only* upload path — the default drag-and-drop
-  asset source is disabled, so no unshrunk original can slip through.
+  shrink it. **auto-resize-on-upload** (client-side downscale to ~1600px) is
+  wired into Studio behind the **Select** button, but it is *not* the only
+  path — `directUploads` is **on**, so drag-and-drop still accepts raw photos.
+  Forcing the resize made Sanity render a greyed-out "Can't upload files here",
+  which non-technical staff read as a broken field; usability won. Image field
+  descriptions recommend Select (`schemaTypes/uploadHint.ts`). **The cost is
+  time, not correctness — see the storage budget table in `README.md`**, which
+  is where a future dev should look if uploads start failing.
 - Rule: **web-sized originals in, WebP variants out.** Set `cdn.sanity.io` in
   `next.config.js`.
 
@@ -103,6 +119,10 @@ matching the `place.category` enum exactly, so `/peta` resolves them
 mechanically (`` `/images/ic-place-${category}.png` ``) with no mapping table.
 
 - Header (all pages): `ic-instagram`, `ic-tiktok`
+- `/pemerintah-kelurahan` hero contact lines: `ic-whatsapp`, `ic-gmail`
+  (full-colour brand marks). The Footer keeps the inline-SVG `WhatsAppIcon`
+  instead, because it tints with `currentColor` and needs the hover colour
+  change — a PNG can't do that.
 - Homepage Layanan: `ic-kantor-kelurahan`, `ic-peta`, `ic-umkm`, `ic-prestasi`
 - `/peta` cards: `ic-place-{pemerintahan,masjid,sekolah,toko,lainnya}`
 - `/prestasi`: `ic-trophy` (×2)
@@ -116,9 +136,15 @@ stand-in — **deliberately dropped, `ic-trophy` reused instead. Don't "fix" it.
 **Settled:** the 4 Layanan icons are bespoke flat-vector assets, not emoji —
 they merely read like 🏛 🗺 🏪 🏆 at a glance. Use the files.
 
-**From Sanity, never exported:** `siteSettings.logo` / `.orgChartImage` /
-`.kelurahanMapImage`, `post.coverImage` / `.images`, `staffMember.photo`,
-`umkm.photo`. Video thumbnail is YouTube's own (iframe via `heroVideoUrl`).
+**From Sanity, never exported:** `siteSettings.orgChartImage` /
+`.kelurahanMapImage` / `.officeImage`, `post.coverImage` / `.images`,
+`staffMember.photo`, `umkm.photo`. Video thumbnail is YouTube's own (iframe via
+`heroVideoUrl`).
+
+**The header logo is static**, not from Sanity: `logo-kelurahan.png` (the
+Wonogiri regency seal). It's a fixed government emblem, so `siteSettings.logo`
+was dropped rather than left as a control that does nothing — an unused field in
+Studio actively misleads staff after handover.
 
 **Generic UI icons → `lucide-react`**, not exports: arrows, calendar, map pin,
 back arrow, search.
@@ -138,7 +164,14 @@ All content pages ISR — readers hit Vercel's edge cache, Sanity is queried onl
 at build/revalidation, so load scales with content changes, not traffic.
 
 - **On-demand revalidation is not optional** for a news site: Sanity webhook →
-  `src/app/api/revalidate/route.ts` so posts appear instantly (Phase 2).
+  `src/app/api/revalidate/route.ts` so posts appear instantly. Built: POST,
+  auth via an `x-revalidate-secret` header matching `SANITY_REVALIDATE_SECRET`,
+  mapping `_type` → paths. **The webhook itself is still unconfigured** — set it
+  up in sanity.io/manage at Phase 5, once there's a deployed URL (Sanity cannot
+  reach `localhost`).
+- **`/berita/[slug]` is the shared article route** — it serves Prestasi posts
+  too, since `PrestasiCard` links into it. Never filter that query or
+  `generateStaticParams` by `category`; doing so 404s every Prestasi article.
 - **Paginate `/berita`** — GROQ-slice (`[0...12]`) with load-more/page numbers.
   Design the query with a limit from the start; never render all posts.
 
@@ -156,36 +189,36 @@ A phase is done only when `npm run build`, `npm run lint`, and `npm test` all
 pass clean. Fix failures before moving on; don't let them accumulate. (The user
 runs the builds — see Rules above.)
 
-- [x] **Phase 0 — Skeleton.** Next.js + Tailwind + shadcn/ui scaffold,
-      placeholder homepage, Vercel linked and auto-deploying on push.
-- [x] **Phase 1 — Sanity schema + Studio.** All types above; Studio at `/admin`;
-      auto-resize-on-upload wired; Vitest + RTL set up; Sanity project connected
-      and CORS allowlisted; one of each type created in Studio and verified.
-      `slug` is `hidden: true` and derived by a **document-level** input
-      (`AutoSlugDocumentInput`) — a field-level input can't work, since `hidden`
-      unmounts the field and stops the sync.
-- [ ] **Phase 2 — Static pages wired to Sanity.** Build `src/lib/sanity/*`, then
-      easiest→hardest: Header/Footer → Pemerintah Kelurahan → UMKM → Prestasi →
-      Berita (portable text, dynamic routes, paginated) → homepage. Add
-      `/api/revalidate`; serve images via Sanity CDN transforms.
-      Homepage is only (per `design-reference/beranda-desktop.png`):
-      header/footer → "Layanan" row of 4 static nav icons (Kantor Kelurahan,
-      Peta & Tempat Publik, UMKM Lokal, Prestasi Kelurahan — icon + label, no
-      preview) → "Berita Kelurahan" with the 3 latest posts + "lihat semua"
-      (the only fetched content) → "Video Profil" embed (`heroVideoUrl`).
+- [X] **Phase 0 — Skeleton.** Next.js + Tailwind + shadcn/ui scaffold,
+  placeholder homepage, Vercel linked and auto-deploying on push.
+- [X] **Phase 1 — Sanity schema + Studio.** All types above; Studio at `/admin`;
+  auto-resize-on-upload wired; Vitest + RTL set up; Sanity project connected
+  and CORS allowlisted; one of each type created in Studio and verified.
+  `slug` is `hidden: true` and derived by a **document-level** input
+  (`AutoSlugDocumentInput`) — a field-level input can't work, since `hidden`
+  unmounts the field and stops the sync.
+- [X] **Phase 2 — Static pages wired to Sanity.** Build `src/lib/sanity/*`, then
+  easiest→hardest: Header/Footer → Pemerintah Kelurahan → UMKM → Prestasi →
+  Berita (portable text, dynamic routes, paginated) → homepage. Add
+  `/api/revalidate`; serve images via Sanity CDN transforms.
+  Homepage is only (per `design-reference/beranda-desktop.png`):
+  header/footer → "Layanan" row of 4 static nav icons (Kantor Kelurahan,
+  Peta & Tempat Publik, UMKM Lokal, Prestasi Kelurahan — icon + label, no
+  preview) → "Berita Kelurahan" with the 3 latest posts + "lihat semua"
+  (the only fetched content) → "Video Profil" embed (`heroVideoUrl`).
 - [ ] **Phase 3 — Peta.** Two columns desktop, stacked mobile:
-      `kelurahanMapImage` left, list right. **Static image, not an interactive
-      map** — no map library. Right column: search ("Cari Tempat Umum"), filter
-      pills, 2-up grid of cards (icon + name + "lihat peta" → `googleMapsUrl`).
-      Client-side filter + search. Two frame details: pills lead with a
-      **"Semua"** state that is not a category, and `pemerintahan` displays as
-      **"Pemerintah"** — so category→label needs a small display map,
-      category→icon does not.
+  `kelurahanMapImage` left, list right. **Static image, not an interactive
+  map** — no map library. Right column: search ("Cari Tempat Umum"), filter
+  pills, 2-up grid of cards (icon + name + "lihat peta" → `googleMapsUrl`).
+  Client-side filter + search. Two frame details: pills lead with a
+  **"Semua"** state that is not a category, and `pemerintahan` displays as
+  **"Pemerintah"** — so category→label needs a small display map,
+  category→icon does not.
 - [ ] **Phase 4 — Demographics.** Server component groups `demographicStat` by
-      `statType`; one Recharts client component per chart.
+  `statType`; one Recharts client component per chart.
 - [ ] **Phase 5 — Deploy polish + domain + handover.** Vercel env audit,
-      `cdn.sanity.io` image domain, SEO metadata/sitemap/robots, `.go.id` via
-      PANDI, DNS cutover, then the Handover checklist below.
+  `cdn.sanity.io` image domain, SEO metadata/sitemap/robots, `.go.id` via
+  PANDI, DNS cutover, then the Handover checklist below.
 
 ## Handover (the project's actual end state)
 

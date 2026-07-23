@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { withUploadHint } from "./uploadHint";
 
 export const staffMember = defineType({
   name: "staffMember",
@@ -20,6 +21,7 @@ export const staffMember = defineType({
     defineField({
       name: "photo",
       title: "Foto",
+      description: withUploadHint(),
       type: "image",
       options: { hotspot: true },
     }),

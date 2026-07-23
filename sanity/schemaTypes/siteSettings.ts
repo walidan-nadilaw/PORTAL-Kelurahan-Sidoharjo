@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { withUploadHint } from "./uploadHint";
 
 export const siteSettings = defineType({
   name: "siteSettings",
@@ -12,11 +13,6 @@ export const siteSettings = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: "logo",
-      title: "Logo",
-      type: "image",
-    }),
-    defineField({
       name: "heroVideoUrl",
       title: "Video Beranda (YouTube)",
       description: "Tautan video YouTube yang ditampilkan di halaman utama",
@@ -24,14 +20,24 @@ export const siteSettings = defineType({
       validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }),
     }),
     defineField({
+      name: "officeImage",
+      title: "Foto Kantor Kelurahan",
+      description: withUploadHint(
+        "Foto gedung kantor, dipakai sebagai gambar latar di halaman Kantor Kelurahan",
+      ),
+      type: "image",
+      options: { hotspot: true },
+    }),
+    defineField({
       name: "orgChartImage",
       title: "Struktur Organisasi",
+      description: withUploadHint(),
       type: "image",
     }),
     defineField({
       name: "kelurahanMapImage",
       title: "Peta Sidoharjo",
-      description: "Ditampilkan di halaman Peta & Tempat Umum",
+      description: withUploadHint("Ditampilkan di halaman Peta & Tempat Umum"),
       type: "image",
     }),
     defineField({

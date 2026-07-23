@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { withUploadHint } from "./uploadHint";
 
 export const umkm = defineType({
   name: "umkm",
@@ -20,6 +21,7 @@ export const umkm = defineType({
     defineField({
       name: "photo",
       title: "Foto",
+      description: withUploadHint(),
       type: "image",
       options: { hotspot: true },
     }),
@@ -27,6 +29,14 @@ export const umkm = defineType({
       name: "contactUrl",
       title: "Tautan Kontak",
       description: "Contoh: tautan WhatsApp atau Line resmi usaha",
+      type: "url",
+      validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }),
+    }),
+    defineField({
+      name: "googleMapsUrl",
+      title: "Tautan Google Maps",
+      description:
+        "Opsional — tombol \"lihat peta\" hanya muncul jika tautan ini diisi",
       type: "url",
       validation: (Rule) => Rule.uri({ scheme: ["http", "https"] }),
     }),

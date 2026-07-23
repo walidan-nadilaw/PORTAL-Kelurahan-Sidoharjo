@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { withUploadHint } from "./uploadHint";
 
 export const blockContent = defineType({
   name: "blockContent",
@@ -11,6 +12,7 @@ export const blockContent = defineType({
     defineArrayMember({
       type: "image",
       title: "Gambar",
+      description: withUploadHint(),
       options: { hotspot: true },
       fields: [
         defineField({

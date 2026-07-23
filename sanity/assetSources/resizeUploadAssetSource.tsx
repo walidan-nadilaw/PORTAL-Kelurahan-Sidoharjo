@@ -36,8 +36,7 @@ function ResizeUploadSourceComponent({
       <Card padding={4}>
         <Stack space={4}>
           <Text size={1} muted>
-            Foto akan diubah ukurannya secara otomatis (maks. 1600px) sebelum
-            diunggah.
+            foto yang diunggah di sini akan diperkecil ukurannya sehingga lebih hemat penyimpanan
           </Text>
           {error && <Text size={1}>{error}</Text>}
           {busy ? (

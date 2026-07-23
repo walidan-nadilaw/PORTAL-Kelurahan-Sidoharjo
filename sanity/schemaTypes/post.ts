@@ -3,6 +3,7 @@ import {
   AutoSlugDocumentInput,
   PublishedAtField,
 } from "./components/autoSlug";
+import { withUploadHint } from "./uploadHint";
 
 export const post = defineType({
   name: "post",
@@ -42,14 +43,18 @@ export const post = defineType({
     defineField({
       name: "coverImage",
       title: "Gambar Sampul",
-      description: "Ditampilkan sebagai thumbnail di halaman daftar",
+      description: withUploadHint(
+        "Ditampilkan sebagai thumbnail di halaman daftar",
+      ),
       type: "image",
       options: { hotspot: true },
     }),
     defineField({
       name: "images",
       title: "Dokumentasi",
-      description: "Kumpulan foto tambahan, ditampilkan di halaman detail",
+      description: withUploadHint(
+        "Kumpulan foto tambahan, ditampilkan di halaman detail",
+      ),
       type: "array",
       of: [{ type: "image", options: { hotspot: true } }],
     }),
