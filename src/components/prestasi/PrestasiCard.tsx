@@ -46,6 +46,7 @@ export function PrestasiCard({ post }: { post: PostSummary }) {
                 alt=""
                 width={40}
                 height={40}
+                unoptimized
                 className="size-9"
               />
             </span>

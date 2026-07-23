@@ -8,8 +8,11 @@ import type { ImageLoaderProps } from "next/image";
  * Component to a Client Component. Every content page here is a server
  * component, so the prop form throws at render.
  *
- * Being global, this runs for *all* images — including the static PNGs in
- * public/images/ — so anything that isn't a Sanity asset is returned untouched.
+ * Being global, this runs for *all* images. Static PNGs in public/images/ can't
+ * be resized (there's no CDN behind them), so they're returned untouched — but
+ * they should also carry the `unoptimized` prop on their <Image>, which makes
+ * Next skip the loader entirely. Without it Next warns that the loader ignores
+ * `width` (which, for a local file, it must). This branch stays as a fallback.
  */
 export default function imageLoader({
   src,

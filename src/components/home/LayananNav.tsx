@@ -33,6 +33,7 @@ export function LayananNav() {
                 alt=""
                 width={96}
                 height={96}
+                unoptimized
                 // drop-shadow (not shadow) so the glow follows the icon's
                 // shape rather than boxing its transparent PNG bounds.
                 className="size-10 object-contain transition-[filter] duration-200 group-hover:drop-shadow-lg sm:size-16"

@@ -58,6 +58,7 @@ export default async function PemerintahKelurahanPage() {
                   alt=""
                   width={32}
                   height={32}
+                  unoptimized
                   className="size-5 shrink-0"
                 />
                 {settings.contactWhatsapp}
@@ -70,6 +71,7 @@ export default async function PemerintahKelurahanPage() {
                   alt=""
                   width={32}
                   height={32}
+                  unoptimized
                   className="size-5 shrink-0"
                 />
                 {settings.contactEmail}

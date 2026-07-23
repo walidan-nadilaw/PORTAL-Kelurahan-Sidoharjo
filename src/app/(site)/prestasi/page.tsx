@@ -39,6 +39,7 @@ export default async function PrestasiPage() {
                     alt=""
                     width={32}
                     height={32}
+                    unoptimized
                     className="size-6"
                   />
                 </span>

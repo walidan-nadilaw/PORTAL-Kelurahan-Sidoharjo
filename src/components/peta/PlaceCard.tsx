@@ -16,6 +16,7 @@ export function PlaceCard({ place }: { place: Place }) {
           alt=""
           width={24}
           height={24}
+          unoptimized
           className="size-6 object-contain"
         />
       </span>

@@ -24,6 +24,9 @@ export async function Header() {
             width={96}
             height={96}
             priority
+            // A fixed, pre-sized PNG — skip the Sanity loader (it only resizes
+            // cdn.sanity.io URLs) and Next's optimizer.
+            unoptimized
             className="h-11 w-auto object-contain sm:h-12"
           />
           <span className="leading-tight">
@@ -76,6 +79,7 @@ function SocialLink({
         alt=""
         width={40}
         height={40}
+        unoptimized
         className="h-9 w-9 sm:h-10 sm:w-10"
       />
     </a>
